@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Monitor</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>System Performance Monitor</h1>
+    <div class="chart-container">
+        <canvas id="performanceChart"></canvas>
+    </div>
+    <div class="stats-container">
+        <div class="stat-card">
+            <p>CPU Usage</p>
+            <div class="stat-value"><span id="cpu">0</span>%</div>
+        </div>
+        <div class="stat-card">
+            <p>Memory Usage</p>
+            <div class="stat-value"><span id="memory">0</span>%</div>
+        </div>
+        <div class="stat-card">
+            <p>Active Processes</p>
+            <div class="stat-value"><span id="processes">0</span></div>
+        </div>
+    </div>
+
+    <div class="monitoring-grid">
+        <div class="monitoring-card bottlenecks">
+            <h2>System Bottlenecks</h2>
+            <div id="bottleneck-info" class="card-content"></div>
+        </div>
+        
+        <div class="monitoring-card optimizations">
+            <h2>Suggested Optimizations</h2>
+            <div id="optimization-info" class="card-content"></div>
+        </div>
+        
+        <div class="monitoring-card forecast">
+            <h2>Resource Forecast</h2>
+            <div id="forecast-info" class="card-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'CPU Usage (%)',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                }, {
+                    label: 'Memory Usage (%)',
+                    data: [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Usage Percentage (%)',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        max: 100,
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time (HH:MM:SS)',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 12
+                            },
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14
+                        },
+                        bodyFont: {
+                            size: 13
+                        }
+                    }
+                },
+                animation: {
+                    duration: 750,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+
+        function updateData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('cpu').textContent = data.cpu;
+                    document.getElementById('memory').textContent = data.memory;
+                    document.getElementById('processes').textContent = data.processes;
+                    
+                    chart.data.labels.push(data.time);
+                    chart.data.datasets[0].data.push(data.cpu);
+                    chart.data.datasets[1].data.push(data.memory);
+                    
+                    if (chart.data.labels.length > 20) {
+                        chart.data.labels.shift();
+                        chart.data.datasets[0].data.shift();
+                        chart.data.datasets[1].data.shift();
+                    }
+                    
+                    chart.update();
+                    
+                    updateBottlenecks(data);
+                    updateOptimizations(data);
+                    updateForecast(data);
+                });
+        }
+
+        function updateBottlenecks(data) {
+            const bottleneckDiv = document.getElementById('bottleneck-info');
+            let html = '';
+            
+            if (data.cpu > 80) {
+                html += `<div class="alert warning">High CPU Usage: ${data.cpu}%</div>`;
+            }
+            if (data.memory > 75) {
+                html += `<div class="alert warning">High Memory Usage: ${data.memory}%</div>`;
+            }
+            if (data.processes > 100) {
+                html += `<div class="alert warning">High Process Count: ${data.processes}</div>`;
+            }
+            
+            bottleneckDiv.innerHTML = html || '<div class="alert good">No bottlenecks detected</div>';
+        }
+
+        function updateOptimizations(data) {
+            const optimizationDiv = document.getElementById('optimization-info');
+            let html = '';
+            
+            if (data.cpu > 70) {
+                html += `<div class="alert">Consider closing resource-heavy applications</div>`;
+            }
+            if (data.memory > 70) {
+                html += `<div class="alert">Clear system cache and temporary files</div>`;
+            }
+            if (data.processes > 90) {
+                html += `<div class="alert">Review and close unnecessary background processes</div>`;
+            }
+            
+            optimizationDiv.innerHTML = html || '<div class="alert good">System running optimally</div>';
+        }
+
+        function updateForecast(data) {
+            const forecastDiv = document.getElementById('forecast-info');
+            const cpuTrend = chart.data.datasets[0].data.slice(-5);
+            const memoryTrend = chart.data.datasets[1].data.slice(-5);
+            
+            const avgCPU = cpuTrend.reduce((a, b) => a + b, 0) / cpuTrend.length;
+            const avgMemory = memoryTrend.reduce((a, b) => a + b, 0) / memoryTrend.length;
+            
+            let html = `
+                <div class="alert ${avgCPU > 70 ? 'warning' : 'good'}">
+                    CPU Trend: ${avgCPU > data.cpu ? 'Decreasing' : 'Increasing'}
+                </div>
+                <div class="alert ${avgMemory > 70 ? 'warning' : 'good'}">
+                    Memory Forecast: ${avgMemory > 70 ? 'Upgrade recommended' : 'Sufficient'}
+                </div>
+            `;
+            
+            forecastDiv.innerHTML = html;
+        }
+
+        setInterval(updateData, 2000);
+    </script>
+</body>
+</html>
+<!-- http://localhost:5000 -->
+<!-- AI-powered performance Analyzer for OS Processes -->
