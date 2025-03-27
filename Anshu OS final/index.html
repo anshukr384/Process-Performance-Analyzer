@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Performance Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 20px;
+            padding: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .metric {
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 1.2em;
+            color: #444;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>System Performance Monitor</h1>
+        
+        <div class="section">
+            <div class="metric">
+                <p>CPU Usage: <span id="cpu">0</span>%</p>
+            </div>
+            <div class="metric">
+                <p>Memory Usage: <span id="memory">0</span>%</p>
+            </div>
+            <div class="metric">
+                <p>Active Processes: <span id="processes">0</span></p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">System Bottlenecks</h2>
+            <p>High Process Count: <span id="process-count">0</span></p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Suggested Optimizations</h2>
+            <p>Review and close unnecessary background processes</p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Resource Forecast</h2>
+            <p>CPU Trend: <span id="cpu-trend">Analyzing...</span></p>
+            <p>Memory Forecast: <span id="memory-forecast">Sufficient</span></p>
+        </div>
+    </div>
+
+    <script>
+        function updateData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('cpu').textContent = data.cpu;
+                    document.getElementById('memory').textContent = data.memory;
+                    document.getElementById('processes').textContent = data.processes;
+                    document.getElementById('process-count').textContent = data.processes;
+                    
+                    // Update trends
+                    document.getElementById('cpu-trend').textContent = 
+                        data.cpu > 80 ? "High" : data.cpu > 50 ? "Moderate" : "Decreasing";
+                });
+        }
+        setInterval(updateData, 1000);
+        updateData();
+    </script>
+</body>
+</html>
